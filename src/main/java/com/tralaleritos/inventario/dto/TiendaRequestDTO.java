@@ -21,4 +21,9 @@ public class TiendaRequestDTO {
 
     @Email(message = "El formato del email no es válido")
     private String email;
+
+    // --- NUEVOS ATRIBUTOS ---
+    private String horariosApertura;
+    private String personalAsignado;
+    private String politicasLocales;
 }

@@ -24,6 +24,10 @@ public class TiendaService {
         tienda.setDireccion(tiendaDto.getDireccion());
         tienda.setTelefono(tiendaDto.getTelefono());
         tienda.setEmail(tiendaDto.getEmail());
+        // --- ASIGNAR NUEVOS ATRIBUTOS ---
+        tienda.setHorariosApertura(tiendaDto.getHorariosApertura());
+        tienda.setPersonalAsignado(tiendaDto.getPersonalAsignado());
+        tienda.setPoliticasLocales(tiendaDto.getPoliticasLocales());
         return tienda;
     }
 
@@ -34,6 +38,10 @@ public class TiendaService {
         dto.setDireccion(tienda.getDireccion());
         dto.setTelefono(tienda.getTelefono());
         dto.setEmail(tienda.getEmail());
+        // --- OBTENER NUEVOS ATRIBUTOS ---
+        dto.setHorariosApertura(tienda.getHorariosApertura());
+        dto.setPersonalAsignado(tienda.getPersonalAsignado());
+        dto.setPoliticasLocales(tienda.getPoliticasLocales());
         return dto;
     }
 
@@ -64,6 +72,10 @@ public class TiendaService {
             tiendaExistente.setDireccion(tiendaDto.getDireccion());
             tiendaExistente.setTelefono(tiendaDto.getTelefono());
             tiendaExistente.setEmail(tiendaDto.getEmail());
+            // --- ACTUALIZAR NUEVOS ATRIBUTOS ---
+            tiendaExistente.setHorariosApertura(tiendaDto.getHorariosApertura());
+            tiendaExistente.setPersonalAsignado(tiendaDto.getPersonalAsignado());
+            tiendaExistente.setPoliticasLocales(tiendaDto.getPoliticasLocales());
             Tienda tiendaActualizada = tiendaRepository.save(tiendaExistente);
             return convertirAResponseDto(tiendaActualizada);
         }).orElseThrow(() -> new RuntimeException("Tienda no encontrada con id " + id));

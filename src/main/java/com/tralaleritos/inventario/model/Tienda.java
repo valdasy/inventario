@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "tiendas") // Nombre de la tabla en la base de datos
+@Table(name = "tiendas")
 public class Tienda {
 
     @Id
@@ -34,10 +34,22 @@ public class Tienda {
     @Email(message = "El formato del email no es válido")
     private String email;
 
+    // --- NUEVOS ATRIBUTOS ---
+
+    // Horarios de apertura (ej. "L-V: 9am-6pm; S: 10am-2pm")
+    @Column(columnDefinition = "TEXT") // Puede ser un texto largo
+    private String horariosApertura;
+
+    // Personal asignado (ej. "Gerente: Juan Perez, Vendedor: Maria Lopez")
+    // Podría ser un JSON string si quieres estructura {"gerente": "Juan Perez"}
+    @Column(columnDefinition = "TEXT")
+    private String personalAsignado;
+
+    // Políticas locales (ej. "Política de devoluciones: 30 días con boleta")
+    @Column(columnDefinition = "TEXT")
+    private String politicasLocales;
+
     // Relación OneToMany con Inventario: una tienda puede tener muchos registros de inventario
-    // mappedBy indica el campo en la entidad Inventario que posee la relación.
-    // CascadeType.ALL: Operaciones (persist, merge, remove, refresh, detach) se propagarán.
-    // orphanRemoval = true: Si un Inventario se desasocia de la Tienda, será eliminado.
     @OneToMany(mappedBy = "tienda", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Inventario> inventarios = new ArrayList<>();
 }

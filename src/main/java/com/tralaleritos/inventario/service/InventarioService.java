@@ -52,8 +52,6 @@ public class InventarioService {
         Tienda tienda = tiendaRepository.findById(inventarioDto.getTiendaId())
                 .orElseThrow(() -> new RuntimeException("Tienda no encontrada con id " + inventarioDto.getTiendaId()));
 
-        // *** CAMBIO AQUÍ: Validar unicidad de producto y tienda ***
-        // Busca si ya existe un registro de inventario para este producto en esta tienda
         Optional<Inventario> existingInventory = inventarioRepository.findByProductoAndTienda(producto, tienda);
         if (existingInventory.isPresent()) {
             throw new RuntimeException("Ya existe un registro de inventario para el producto " + producto.getNombre() + " en la tienda " + tienda.getNombre() + ".");
@@ -66,10 +64,6 @@ public class InventarioService {
         inventario.setTienda(tienda);
 
         Inventario inventarioGuardado = inventarioRepository.save(inventario);
-
-        // Opcional: Para mantener la consistencia de las listas en las entidades si las usas
-        // producto.getInventarios().add(inventarioGuardado); // Ya manejado por cascade
-        // tienda.getInventarios().add(inventarioGuardado);   // Ya manejado por cascade
 
         return convertirAResponseDto(inventarioGuardado);
     }
@@ -87,19 +81,25 @@ public class InventarioService {
                 .map(this::convertirAResponseDto);
     }
 
+    // *** NUEVO MÉTODO ***
+    @Transactional(readOnly = true)
+    public List<InventarioResponseDTO> obtenerInventarioPorTienda(Long tiendaId) {
+        // Primero, verifica si la tienda existe
+        if (!tiendaRepository.existsById(tiendaId)) {
+            throw new RuntimeException("Tienda no encontrada con ID: " + tiendaId);
+        }
+        // Luego, busca los inventarios asociados a esa tienda
+        return inventarioRepository.findByTiendaId(tiendaId).stream()
+                .map(this::convertirAResponseDto)
+                .collect(Collectors.toList());
+    }
+
+
     @Transactional
     public InventarioResponseDTO actualizarInventario(Long id, InventarioRequestDTO inventarioDto) {
         return inventarioRepository.findById(id).map(inventarioExistente -> {
-            // Se actualizan la cantidad disponible y el punto de reorden.
-            // Las relaciones producto y tienda no deben cambiarse en una actualización de inventario.
-            // Si se necesitara "mover" inventario entre tiendas o reasignar un producto,
-            // se crearían métodos de negocio específicos para ello, no una simple actualización.
             inventarioExistente.setCantidadDisponible(inventarioDto.getCantidadDisponible());
             inventarioExistente.setPuntoReorden(inventarioDto.getPuntoReorden());
-            // No permitir actualizar productoId o tiendaId directamente desde aquí
-            // Si el DTO los trae, ignorarlos o lanzar un error si se intenta cambiar.
-            // Para mantener la simplicidad, solo actualizamos los campos de cantidad.
-
             Inventario inventarioActualizado = inventarioRepository.save(inventarioExistente);
             return convertirAResponseDto(inventarioActualizado);
         }).orElseThrow(() -> new RuntimeException("Registro de inventario no encontrado con id " + id));

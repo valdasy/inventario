@@ -26,8 +26,8 @@ public class InventarioController {
 
     @GetMapping
     public ResponseEntity<List<InventarioResponseDTO>> obtenerTodoElInventario() {
-        List<InventarioResponseDTO> inventarios = inventarioService.obtenerTodoElInventario();
-        return ResponseEntity.ok(inventarios);
+        List<InventarioResponseDTO> inventario = inventarioService.obtenerTodoElInventario();
+        return ResponseEntity.ok(inventario);
     }
 
     @GetMapping("/{id}")
@@ -35,6 +35,14 @@ public class InventarioController {
         return inventarioService.obtenerInventarioPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // *** NUEVO ENDPOINT ***
+    // Para buscar todos los inventarios de una tienda específica
+    @GetMapping("/por-tienda/{tiendaId}")
+    public ResponseEntity<List<InventarioResponseDTO>> obtenerInventarioPorTienda(@PathVariable Long tiendaId) {
+        List<InventarioResponseDTO> inventarios = inventarioService.obtenerInventarioPorTienda(tiendaId);
+        return ResponseEntity.ok(inventarios);
     }
 
     @PutMapping("/{id}")

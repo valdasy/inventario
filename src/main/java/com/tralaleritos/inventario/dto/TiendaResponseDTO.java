@@ -14,4 +14,9 @@ public class TiendaResponseDTO {
     private String direccion;
     private String telefono;
     private String email;
+
+    // --- NUEVOS ATRIBUTOS ---
+    private String horariosApertura;
+    private String personalAsignado;
+    private String politicasLocales;
 }
