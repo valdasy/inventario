@@ -1,7 +1,6 @@
 package com.tralaleritos.inventario.controller;
 
-import com.tralaleritos.inventario.dto.CategoriaRequestDTO;
-import com.tralaleritos.inventario.dto.CategoriaResponseDTO;
+import com.tralaleritos.inventario.model.Categoria; // Usar la entidad directamente
 import com.tralaleritos.inventario.service.CategoriaService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,33 +18,33 @@ public class CategoriaController {
     private CategoriaService categoriaService;
 
     @PostMapping
-    public ResponseEntity<CategoriaResponseDTO> crearCategoria(@Valid @RequestBody CategoriaRequestDTO categoriaDto) {
-        CategoriaResponseDTO nuevaCategoria = categoriaService.crearCategoria(categoriaDto);
+    public ResponseEntity<Categoria> crearCategoria(@Valid @RequestBody Categoria categoria) {
+        Categoria nuevaCategoria = categoriaService.crearCategoria(categoria);
         return new ResponseEntity<>(nuevaCategoria, HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<CategoriaResponseDTO>> obtenerTodasLasCategorias() {
-        List<CategoriaResponseDTO> categorias = categoriaService.obtenerTodasLasCategorias();
+    public ResponseEntity<List<Categoria>> obtenerTodasLasCategorias() {
+        List<Categoria> categorias = categoriaService.obtenerTodasLasCategorias();
         return ResponseEntity.ok(categorias);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CategoriaResponseDTO> obtenerCategoriaPorId(@PathVariable Long id) {
+    public ResponseEntity<Categoria> obtenerCategoriaPorId(@PathVariable Long id) {
         return categoriaService.obtenerCategoriaPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .map(ResponseEntity::ok) // Si se encuentra, responde con 200 OK y la categoría
+                .orElse(ResponseEntity.notFound().build()); // Si no, responde con 404 Not Found
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CategoriaResponseDTO> actualizarCategoria(@PathVariable Long id, @Valid @RequestBody CategoriaRequestDTO categoriaDto) {
-        CategoriaResponseDTO categoriaActualizada = categoriaService.actualizarCategoria(id, categoriaDto);
+    public ResponseEntity<Categoria> actualizarCategoria(@PathVariable Long id, @Valid @RequestBody Categoria categoria) {
+        Categoria categoriaActualizada = categoriaService.actualizarCategoria(id, categoria);
         return ResponseEntity.ok(categoriaActualizada);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminarCategoria(@PathVariable Long id) {
         categoriaService.eliminarCategoria(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent().build(); // 204 No Content es apropiado para DELETE exitoso
     }
 }

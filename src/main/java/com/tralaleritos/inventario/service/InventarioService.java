@@ -1,20 +1,19 @@
 package com.tralaleritos.inventario.service;
 
-import com.tralaleritos.inventario.dto.InventarioRequestDTO;
-import com.tralaleritos.inventario.dto.InventarioResponseDTO;
 import com.tralaleritos.inventario.model.Inventario;
 import com.tralaleritos.inventario.model.Producto;
 import com.tralaleritos.inventario.model.Tienda;
 import com.tralaleritos.inventario.repository.InventarioRepository;
 import com.tralaleritos.inventario.repository.ProductoRepository;
 import com.tralaleritos.inventario.repository.TiendaRepository;
+import jakarta.persistence.EntityExistsException;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class InventarioService {
@@ -23,92 +22,84 @@ public class InventarioService {
     private InventarioRepository inventarioRepository;
 
     @Autowired
-    private ProductoRepository productoRepository;
+    private ProductoRepository productoRepository; // Necesario para cargar Producto por ID
 
     @Autowired
-    private TiendaRepository tiendaRepository;
-
-    private InventarioResponseDTO convertirAResponseDto(Inventario inventario) {
-        InventarioResponseDTO dto = new InventarioResponseDTO();
-        dto.setId(inventario.getId());
-        dto.setCantidadDisponible(inventario.getCantidadDisponible());
-        dto.setPuntoReorden(inventario.getPuntoReorden());
-        if (inventario.getProducto() != null) {
-            dto.setProductoId(inventario.getProducto().getId());
-            dto.setNombreProducto(inventario.getProducto().getNombre());
-        }
-        if (inventario.getTienda() != null) {
-            dto.setTiendaId(inventario.getTienda().getId());
-            dto.setNombreTienda(inventario.getTienda().getNombre());
-        }
-        return dto;
-    }
+    private TiendaRepository tiendaRepository; // Necesario para cargar Tienda por ID
 
     @Transactional
-    public InventarioResponseDTO crearInventario(InventarioRequestDTO inventarioDto) {
-        Producto producto = productoRepository.findById(inventarioDto.getProductoId())
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado con id " + inventarioDto.getProductoId()));
+    public Inventario crearInventario(Inventario inventario) {
+        // Validar y cargar el Producto
+        if (inventario.getProducto() == null || inventario.getProducto().getId() == null) {
+            throw new IllegalArgumentException("El ID del producto es requerido para crear un registro de inventario.");
+        }
+        Producto producto = productoRepository.findById(inventario.getProducto().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con id: " + inventario.getProducto().getId()));
 
-        Tienda tienda = tiendaRepository.findById(inventarioDto.getTiendaId())
-                .orElseThrow(() -> new RuntimeException("Tienda no encontrada con id " + inventarioDto.getTiendaId()));
+        // Validar y cargar la Tienda
+        if (inventario.getTienda() == null || inventario.getTienda().getId() == null) {
+            throw new IllegalArgumentException("El ID de la tienda es requerido para crear un registro de inventario.");
+        }
+        Tienda tienda = tiendaRepository.findById(inventario.getTienda().getId())
+                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada con id: " + inventario.getTienda().getId()));
 
-        Optional<Inventario> existingInventory = inventarioRepository.findByProductoAndTienda(producto, tienda);
-        if (existingInventory.isPresent()) {
-            throw new RuntimeException("Ya existe un registro de inventario para el producto " + producto.getNombre() + " en la tienda " + tienda.getNombre() + ".");
+        // Verificar si ya existe un inventario para este producto en esta tienda
+        if (inventarioRepository.findByProducto_IdAndTienda_Id(producto.getId(), tienda.getId()).isPresent()) {
+            throw new EntityExistsException("Ya existe un registro de inventario para el producto '" + producto.getNombre() + "' en la tienda '" + tienda.getNombre() + "'.");
         }
 
-        Inventario inventario = new Inventario();
+        // Asignar las entidades cargadas y gestionadas
         inventario.setProducto(producto);
-        inventario.setCantidadDisponible(inventarioDto.getCantidadDisponible());
-        inventario.setPuntoReorden(inventarioDto.getPuntoReorden());
         inventario.setTienda(tienda);
+        inventario.setId(null); // Asegurar la creación
 
-        Inventario inventarioGuardado = inventarioRepository.save(inventario);
-
-        return convertirAResponseDto(inventarioGuardado);
+        return inventarioRepository.save(inventario);
     }
 
     @Transactional(readOnly = true)
-    public List<InventarioResponseDTO> obtenerTodoElInventario() {
-        return inventarioRepository.findAll().stream()
-                .map(this::convertirAResponseDto)
-                .collect(Collectors.toList());
+    public List<Inventario> obtenerTodoElInventario() {
+        return inventarioRepository.findAll();
     }
 
     @Transactional(readOnly = true)
-    public Optional<InventarioResponseDTO> obtenerInventarioPorId(Long id) {
-        return inventarioRepository.findById(id)
-                .map(this::convertirAResponseDto);
+    public Optional<Inventario> obtenerInventarioPorId(Long id) {
+        return inventarioRepository.findById(id);
     }
 
-    // *** NUEVO MÉTODO ***
     @Transactional(readOnly = true)
-    public List<InventarioResponseDTO> obtenerInventarioPorTienda(Long tiendaId) {
-        // Primero, verifica si la tienda existe
+    public List<Inventario> obtenerInventarioPorTienda(Long tiendaId) {
         if (!tiendaRepository.existsById(tiendaId)) {
-            throw new RuntimeException("Tienda no encontrada con ID: " + tiendaId);
+            throw new EntityNotFoundException("Tienda no encontrada con ID: " + tiendaId);
         }
-        // Luego, busca los inventarios asociados a esa tienda
-        return inventarioRepository.findByTiendaId(tiendaId).stream()
-                .map(this::convertirAResponseDto)
-                .collect(Collectors.toList());
+        return inventarioRepository.findByTienda_Id(tiendaId);
     }
-
 
     @Transactional
-    public InventarioResponseDTO actualizarInventario(Long id, InventarioRequestDTO inventarioDto) {
-        return inventarioRepository.findById(id).map(inventarioExistente -> {
-            inventarioExistente.setCantidadDisponible(inventarioDto.getCantidadDisponible());
-            inventarioExistente.setPuntoReorden(inventarioDto.getPuntoReorden());
-            Inventario inventarioActualizado = inventarioRepository.save(inventarioExistente);
-            return convertirAResponseDto(inventarioActualizado);
-        }).orElseThrow(() -> new RuntimeException("Registro de inventario no encontrado con id " + id));
+    public Inventario actualizarInventario(Long id, Inventario inventarioActualizacion) {
+        Inventario inventarioExistente = inventarioRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Registro de inventario no encontrado con id: " + id));
+
+        // En una actualización de inventario, normalmente solo se actualizan cantidades.
+        // Cambiar el producto o la tienda de un registro de inventario existente suele ser una mala práctica
+        // (sería mejor eliminar el antiguo y crear uno nuevo).
+        // Por lo tanto, no permitiremos cambiar productoId ni tiendaId aquí.
+
+        if (inventarioActualizacion.getCantidadDisponible() != null) {
+            inventarioExistente.setCantidadDisponible(inventarioActualizacion.getCantidadDisponible());
+        }
+        if (inventarioActualizacion.getPuntoReorden() != null) {
+            inventarioExistente.setPuntoReorden(inventarioActualizacion.getPuntoReorden());
+        }
+
+        // Las validaciones de Min(0) en la entidad se encargarán de los valores negativos.
+
+        return inventarioRepository.save(inventarioExistente);
     }
 
     @Transactional
     public void eliminarInventario(Long id) {
         if (!inventarioRepository.existsById(id)) {
-            throw new RuntimeException("Registro de inventario no encontrado con id " + id);
+            throw new EntityNotFoundException("Registro de inventario no encontrado con id: " + id);
         }
         inventarioRepository.deleteById(id);
     }

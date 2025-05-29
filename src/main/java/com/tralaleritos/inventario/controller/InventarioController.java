@@ -1,7 +1,6 @@
 package com.tralaleritos.inventario.controller;
 
-import com.tralaleritos.inventario.dto.InventarioRequestDTO;
-import com.tralaleritos.inventario.dto.InventarioResponseDTO;
+import com.tralaleritos.inventario.model.Inventario;
 import com.tralaleritos.inventario.service.InventarioService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,35 +18,52 @@ public class InventarioController {
     private InventarioService inventarioService;
 
     @PostMapping
-    public ResponseEntity<InventarioResponseDTO> crearInventario(@Valid @RequestBody InventarioRequestDTO inventarioDto) {
-        InventarioResponseDTO nuevoInventario = inventarioService.crearInventario(inventarioDto);
+    public ResponseEntity<Inventario> crearInventario(@Valid @RequestBody Inventario inventario) {
+        // El JSON de entrada debe ser algo como:
+        // {
+        //   "producto": { "id": 1 },
+        //   "tienda": { "id": 1 },
+        //   "cantidadDisponible": 100,
+        //   "puntoReorden": 20
+        // }
+        Inventario nuevoInventario = inventarioService.crearInventario(inventario);
         return new ResponseEntity<>(nuevoInventario, HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<InventarioResponseDTO>> obtenerTodoElInventario() {
-        List<InventarioResponseDTO> inventario = inventarioService.obtenerTodoElInventario();
+    public ResponseEntity<List<Inventario>> obtenerTodoElInventario() {
+        List<Inventario> inventario = inventarioService.obtenerTodoElInventario();
         return ResponseEntity.ok(inventario);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<InventarioResponseDTO> obtenerInventarioPorId(@PathVariable Long id) {
+    public ResponseEntity<Inventario> obtenerInventarioPorId(@PathVariable Long id) {
         return inventarioService.obtenerInventarioPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // *** NUEVO ENDPOINT ***
-    // Para buscar todos los inventarios de una tienda específica
     @GetMapping("/por-tienda/{tiendaId}")
-    public ResponseEntity<List<InventarioResponseDTO>> obtenerInventarioPorTienda(@PathVariable Long tiendaId) {
-        List<InventarioResponseDTO> inventarios = inventarioService.obtenerInventarioPorTienda(tiendaId);
+    public ResponseEntity<List<Inventario>> obtenerInventarioPorTienda(@PathVariable Long tiendaId) {
+        List<Inventario> inventarios = inventarioService.obtenerInventarioPorTienda(tiendaId);
+        if (inventarios.isEmpty()) {
+            // Podrías devolver notFound si la tienda existe pero no tiene inventario,
+            // o siempre ok con lista vacía. Ok con lista vacía suele ser más estándar.
+            // La excepción EntityNotFoundException se lanzará desde el servicio si la tienda no existe.
+        }
         return ResponseEntity.ok(inventarios);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<InventarioResponseDTO> actualizarInventario(@PathVariable Long id, @Valid @RequestBody InventarioRequestDTO inventarioDto) {
-        InventarioResponseDTO inventarioActualizado = inventarioService.actualizarInventario(id, inventarioDto);
+    public ResponseEntity<Inventario> actualizarInventario(@PathVariable Long id, @Valid @RequestBody Inventario inventario) {
+        // El JSON de entrada debe ser algo como:
+        // {
+        //   "cantidadDisponible": 90, (opcional)
+        //   "puntoReorden": 15       (opcional)
+        // }
+        // No se deben enviar producto.id ni tienda.id en la actualización aquí,
+        // ya que la lógica del servicio no los modifica.
+        Inventario inventarioActualizado = inventarioService.actualizarInventario(id, inventario);
         return ResponseEntity.ok(inventarioActualizado);
     }
 

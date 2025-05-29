@@ -1,16 +1,15 @@
 package com.tralaleritos.inventario.service;
 
-import com.tralaleritos.inventario.dto.TiendaRequestDTO;
-import com.tralaleritos.inventario.dto.TiendaResponseDTO;
 import com.tralaleritos.inventario.model.Tienda;
 import com.tralaleritos.inventario.repository.TiendaRepository;
+import jakarta.persistence.EntityExistsException;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class TiendaService {
@@ -18,74 +17,72 @@ public class TiendaService {
     @Autowired
     private TiendaRepository tiendaRepository;
 
-    private Tienda convertirADto(TiendaRequestDTO tiendaDto) {
-        Tienda tienda = new Tienda();
-        tienda.setNombre(tiendaDto.getNombre());
-        tienda.setDireccion(tiendaDto.getDireccion());
-        tienda.setTelefono(tiendaDto.getTelefono());
-        tienda.setEmail(tiendaDto.getEmail());
-        // --- ASIGNAR NUEVOS ATRIBUTOS ---
-        tienda.setHorariosApertura(tiendaDto.getHorariosApertura());
-        tienda.setPersonalAsignado(tiendaDto.getPersonalAsignado());
-        tienda.setPoliticasLocales(tiendaDto.getPoliticasLocales());
-        return tienda;
-    }
-
-    private TiendaResponseDTO convertirAResponseDto(Tienda tienda) {
-        TiendaResponseDTO dto = new TiendaResponseDTO();
-        dto.setId(tienda.getId());
-        dto.setNombre(tienda.getNombre());
-        dto.setDireccion(tienda.getDireccion());
-        dto.setTelefono(tienda.getTelefono());
-        dto.setEmail(tienda.getEmail());
-        // --- OBTENER NUEVOS ATRIBUTOS ---
-        dto.setHorariosApertura(tienda.getHorariosApertura());
-        dto.setPersonalAsignado(tienda.getPersonalAsignado());
-        dto.setPoliticasLocales(tienda.getPoliticasLocales());
-        return dto;
-    }
-
     @Transactional
-    public TiendaResponseDTO crearTienda(TiendaRequestDTO tiendaDto) {
-        Tienda tienda = convertirADto(tiendaDto);
-        Tienda tiendaGuardada = tiendaRepository.save(tienda);
-        return convertirAResponseDto(tiendaGuardada);
+    public Tienda crearTienda(Tienda tienda) {
+        // Validar unicidad de Nombre
+        if (tienda.getNombre() != null && tiendaRepository.findByNombre(tienda.getNombre()).isPresent()) {
+            throw new EntityExistsException("Ya existe una tienda con el nombre: " + tienda.getNombre());
+        }
+        // Validar unicidad de Email (si es obligatorio y único)
+        if (tienda.getEmail() != null && !tienda.getEmail().isEmpty()) { // Solo validar si no es nulo o vacío
+            if (tiendaRepository.findByEmail(tienda.getEmail()).isPresent()) {
+                throw new EntityExistsException("Ya existe una tienda con el email: " + tienda.getEmail());
+            }
+        }
+
+        tienda.setId(null); // Asegurar la creación
+        return tiendaRepository.save(tienda);
     }
 
     @Transactional(readOnly = true)
-    public List<TiendaResponseDTO> obtenerTodasLasTiendas() {
-        return tiendaRepository.findAll().stream()
-                .map(this::convertirAResponseDto)
-                .collect(Collectors.toList());
+    public List<Tienda> obtenerTodasLasTiendas() {
+        return tiendaRepository.findAll();
     }
 
     @Transactional(readOnly = true)
-    public Optional<TiendaResponseDTO> obtenerTiendaPorId(Long id) {
-        return tiendaRepository.findById(id)
-                .map(this::convertirAResponseDto);
+    public Optional<Tienda> obtenerTiendaPorId(Long id) {
+        return tiendaRepository.findById(id);
     }
 
     @Transactional
-    public TiendaResponseDTO actualizarTienda(Long id, TiendaRequestDTO tiendaDto) {
-        return tiendaRepository.findById(id).map(tiendaExistente -> {
-            tiendaExistente.setNombre(tiendaDto.getNombre());
-            tiendaExistente.setDireccion(tiendaDto.getDireccion());
-            tiendaExistente.setTelefono(tiendaDto.getTelefono());
-            tiendaExistente.setEmail(tiendaDto.getEmail());
-            // --- ACTUALIZAR NUEVOS ATRIBUTOS ---
-            tiendaExistente.setHorariosApertura(tiendaDto.getHorariosApertura());
-            tiendaExistente.setPersonalAsignado(tiendaDto.getPersonalAsignado());
-            tiendaExistente.setPoliticasLocales(tiendaDto.getPoliticasLocales());
-            Tienda tiendaActualizada = tiendaRepository.save(tiendaExistente);
-            return convertirAResponseDto(tiendaActualizada);
-        }).orElseThrow(() -> new RuntimeException("Tienda no encontrada con id " + id));
+    public Tienda actualizarTienda(Long id, Tienda tiendaActualizacion) {
+        Tienda tiendaExistente = tiendaRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Tienda no encontrada con id: " + id));
+
+        // Validar unicidad de Nombre si se está cambiando
+        if (tiendaActualizacion.getNombre() != null && !tiendaActualizacion.getNombre().equals(tiendaExistente.getNombre())) {
+            if (tiendaRepository.findByNombre(tiendaActualizacion.getNombre()).isPresent()) {
+                throw new EntityExistsException("Ya existe otra tienda con el nombre: " + tiendaActualizacion.getNombre());
+            }
+        }
+        // Validar unicidad de Email si se está cambiando y no es nulo/vacío
+        if (tiendaActualizacion.getEmail() != null && !tiendaActualizacion.getEmail().isEmpty() &&
+            !tiendaActualizacion.getEmail().equals(tiendaExistente.getEmail())) {
+            if (tiendaRepository.findByEmail(tiendaActualizacion.getEmail()).isPresent()) {
+                throw new EntityExistsException("Ya existe otra tienda con el email: " + tiendaActualizacion.getEmail());
+            }
+        }
+
+        tiendaExistente.setNombre(tiendaActualizacion.getNombre());
+        tiendaExistente.setDireccion(tiendaActualizacion.getDireccion());
+        tiendaExistente.setTelefono(tiendaActualizacion.getTelefono());
+        tiendaExistente.setEmail(tiendaActualizacion.getEmail()); // Permitir actualizar a nulo si el campo lo permite
+        tiendaExistente.setHorariosApertura(tiendaActualizacion.getHorariosApertura());
+        tiendaExistente.setPersonalAsignado(tiendaActualizacion.getPersonalAsignado());
+        tiendaExistente.setPoliticasLocales(tiendaActualizacion.getPoliticasLocales());
+
+        // La lista de inventarios se gestiona a través de la entidad Inventario.
+        return tiendaRepository.save(tiendaExistente);
     }
 
     @Transactional
     public void eliminarTienda(Long id) {
         if (!tiendaRepository.existsById(id)) {
-            throw new RuntimeException("Tienda no encontrada con id " + id);
+            throw new EntityNotFoundException("Tienda no encontrada con id: " + id);
         }
+        // Con CascadeType.ALL y orphanRemoval=true en Tienda.inventarios,
+        // los registros de inventario asociados a esta tienda también se eliminarán.
+        // Esto suele ser el comportamiento deseado (si se elimina una tienda, su inventario también).
         tiendaRepository.deleteById(id);
     }
 }
