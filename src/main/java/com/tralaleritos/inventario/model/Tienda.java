@@ -2,7 +2,6 @@ package com.tralaleritos.inventario.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore; // O @JsonManagedReference
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference; // Si decides usarla para la relación con Inventario
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

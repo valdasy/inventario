@@ -3,6 +3,8 @@ package com.tralaleritos.inventario.repository;
 import com.tralaleritos.inventario.model.Inventario;
 import com.tralaleritos.inventario.model.Producto;
 import com.tralaleritos.inventario.model.Tienda;
+
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,8 +17,16 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
     // Para verificar la restricción de unicidad (producto_id, tienda_id)
     Optional<Inventario> findByProductoAndTienda(Producto producto, Tienda tienda);
     // Alternativa usando IDs directamente, útil si solo tienes los IDs
+    
     Optional<Inventario> findByProducto_IdAndTienda_Id(Long productoId, Long tiendaId);
-
+    @EntityGraph(attributePaths = {
+            "producto",
+            "producto.categoria",
+            "producto.proveedor"
+            // No necesitamos "tienda" aquí porque ya estamos filtrando por tiendaId
+            // y el DTO de inventario no incluirá la tienda (estará en el DTO de tienda padre)
+    })
+    List<Inventario> findWithDetailsByTienda_Id(Long tiendaId);
 
     // Para buscar todos los inventarios de una tienda específica
     List<Inventario> findByTienda_Id(Long tiendaId);

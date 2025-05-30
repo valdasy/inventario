@@ -17,12 +17,6 @@ public class ProductoController {
     @Autowired
     private ProductoService productoService;
 
-    // --- Endpoint para crear un producto ---
-    // JSON de entrada puede ser:
-    // { "nombre": "P1", "precio": 10.0 }
-    // { "nombre": "P2", "precio": 20.0, "categoria": {"id": 1} }
-    // { "nombre": "P3", "precio": 30.0, "proveedor": {"id": 1} }
-    // { "nombre": "P4", "precio": 40.0, "categoria": {"id": 1}, "proveedor": {"id": 1} }
     @PostMapping
     public ResponseEntity<Producto> crearProducto(@Valid @RequestBody Producto producto) {
         Producto nuevoProducto = productoService.crearProducto(producto);
@@ -44,9 +38,6 @@ public class ProductoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // --- Endpoint para actualizar un producto ---
-    // JSON de entrada puede incluir campos a cambiar. Para desasignar categoría/proveedor:
-    // { "categoria": null } o { "proveedor": null }
     @PutMapping("/{id}")
     public ResponseEntity<Producto> actualizarProducto(@PathVariable Long id, @Valid @RequestBody Producto producto) {
         Producto productoActualizado = productoService.actualizarProducto(id, producto);
